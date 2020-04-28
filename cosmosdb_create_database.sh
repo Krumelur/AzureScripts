@@ -14,6 +14,7 @@ databaseName="NAME OF DB TO CREATE"
 containerName="NAME OF CONTAINER TO CREATE"
 location="centralus"
 resourceGroup="NAME OF RESOURCE GROUP TO USE"
+partitionKey="/id"
 
 # Set defaults for all following commands
 az configure --defaults group=$resourceGroup
@@ -28,7 +29,7 @@ az cosmosdb sql database create --name $databaseName --account-name $cosmosDbIns
 
 # Create a container in the database
 printf "Creating a container named '%s' in database '%s'.\n" $containerName $databaseName
-az cosmosdb sql container create --name $containerName --partition-key-path /id --account-name $cosmosDbInstanceName --database-name $databaseName
+az cosmosdb sql container create --name $containerName --partition-key-path $partitionKey --account-name $cosmosDbInstanceName --database-name $databaseName
 
 # Get the primary connection string
 printf "Getting primary connection string for instance '%s'.\n" $cosmosDbInstanceName

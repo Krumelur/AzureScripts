@@ -1,6 +1,7 @@
-##########################################################################
-# Bash script using Azure CLI to list all databases of a CosmosDB instance
-##########################################################################
+#############################################################################
+# Bash script using Azure CLI to create a document in CosmosDB
+# Docs: https://docs.microsoft.com/en-us/rest/api/cosmos-db/create-a-document
+#############################################################################
 
 # This will trigger a browser-based login.
 az login
@@ -8,13 +9,25 @@ az login
 
 resourceGroup="NAME OF RESOURCE GROUP TO USE"
 comsosDbInstanceName="NAME OF COSMOS DB INSTANCE"
+dbName="NAME OF DB"
+containerName="NAME OF CONTAINER"
+partitionKeyName="PARTITION KEY NAME"
+partitionKeyValue="PARTITION KEY VALUE"
+# If TRUE provided document can be created or updated automatically.
+# If FALSE and an existing "id" is provided, there will be an error.
+isUpsert=true
+# JSON data to upload is stored in a file.
+# Notes:
+# - The "id" property is always required and must not be empty. If you don't have an ID, set it to a GUID.
+# - When using the REST API, there must also be a property matching the partition key name with a value.
+documentJson="create_document.json"
 
 
 baseUrl="https://$comsosDbInstanceName.documents.azure.com/"
-verb="get"
-resourceType="dbs"
-resourceLink="dbs"
-resourceId=""
+verb="post"
+resourceType="docs"
+resourceLink="dbs/$dbName/colls/$containerName/docs"
+resourceId="dbs/$dbName/colls/$containerName"
 
 az configure --defaults group=$resourceGroup
 
@@ -57,14 +70,4 @@ echo "URL encoded auth string: $urlEncodedAuthString"
 url="$baseUrl$resourceLink"
 echo "URL: $url"
 
-######################## Not working in Cloud Shell because of this issue: https://github.com/Azure/azure-cli/issues/13208 ########################
-    # Set all the required headers and pass the authString in the "Authorization" header.
-    # This is using JSON notation because the blank separated approach does not work, although the docs state it should. (https://docs.microsoft.com/en-us/cli/azure/reference-index?view=azure-cli-latest#az-rest)
-    #headers="{\"x-ms-date\": \"$now\", \"x-ms-version\": \"2018-12-31\", \"x-ms-documentdb-isquery\": \"true\", \"Content-Type\": \"application/query+json\", \"Authorization\": \"$urlEncodedAuthString\"}"
-    #echo "Headers:" $headers
-    #az rest --verbose -m $verb -u $url --headers $headers
-########################
-
-######################## Workaround using cURL ########################
-curl --request $verb -H "x-ms-date: $now" -H "x-ms-version: 2018-12-31" -H "x-ms-documentdb-isquery: true" -H "Content-Type: application/query+json" -H "Authorization: $urlEncodedAuthString" $url
-########################
+curl --request $verb --data "@$documentJson" -H "x-ms-documentdb-is-upsert: $isUpsert" -H "x-ms-documentdb-partitionkey: [\"default\"]" -H "x-ms-date: $now" -H "x-ms-version: 2018-12-31" -H "Content-Type: application/json" -H "Authorization: $urlEncodedAuthString" $url
