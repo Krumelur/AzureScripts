@@ -48,13 +48,15 @@ echo "Date: " $now
 # Concat verb, resource type, resource ID and date in the expected format. REST API expects the signature to be lowercase.
 # The "little" problem I was not aware of: trailing newlines (`\n`) are always truncated when outputting a string.
 # This would break the hash, because CosmosDB expects them to be there. That's why the two trailing newlines are appended back after the lowercase operation.
-signature="$(echo -n "$verb\n$resourceType\n$resourceId\n$now" | tr '[A-Z]' '[a-z]')\n\n"
+signature="$(printf "%s" "$verb\n$resourceType\n$resourceId\n$now" | tr '[A-Z]' '[a-z]')\n\n"
 echo "Signature: $signature"
 
 # Calculate a hash of the signature using the primary key of the CosmosDB instance.
 # See https://superuser.com/questions/1546027/what-is-the-openssl-equivalent-of-this-given-c-hashing-code/1546036 for details on why
 # this is so tricky.
-hashedSignature=$(echo -en "$signature" | openssl dgst -sha256 -mac hmac -macopt hexkey:$(echo -n "$masterKey" | base64 --decode | hexdump -v -e '/1 "%02x"') -binary | base64)
+hexKey=$(printf "$masterKey" | base64 --decode | hexdump -v -e '/1 "%02x"')
+echo "Hex key: " $hexKey
+hashedSignature=$(printf "$signature" | openssl dgst -sha256 -mac hmac -macopt hexkey:$hexKey -binary | base64)
 echo "Hashed signature: $hashedSignature"
 
 # Build the authorization header using the format "type={typeoftoken}&ver={tokenversion}&sig={hashsignature}"
@@ -63,7 +65,7 @@ echo "Auth string: $authString"
 
 # Auth string is expected to be URL encoded. But of course there's no built-in way in bash to do that. Geez.
 # This is not a full base64 encoding but instead only changes the characters we may see: = -> %3d, & -> %26, + => %2b, / => %2f
-urlEncodedAuthString=$(echo -n "$authString" | sed 's/=/%3d/g' | sed 's/&/%26/g' | sed 's/+/%2b/g' | sed 's/\//%2f/g')
+urlEncodedAuthString=$(printf "$authString" | sed 's/=/%3d/g' | sed 's/&/%26/g' | sed 's/+/%2b/g' | sed 's/\//%2f/g')
 echo "URL encoded auth string: $urlEncodedAuthString"
 
 # Make the API call by combining base URL and resource link.

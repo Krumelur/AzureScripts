@@ -1,28 +1,43 @@
-##########################################################################
-# Bash script using Azure CLI to list all databases of a CosmosDB instance
-##########################################################################
+#############################################################################
+# Bash script using Azure CLI to create a document in CosmosDB.
+# This script reads command line parameters to define:
+# - $1 = JSON document data or file. Use single quotes around raw JSON '{ "id": "new_id_2", "LastName": "Ruppert", "products":"default" }' and
+#        use @ to sepcifiy a file: @myjsondoc.json (without any quotes).
+# - $2 = Master key
+# - $3 = CosmosDB instance name
+# - $4 = Database name
+# - $5 = Collection name
+# - $6 = Partition key name
+# - $7 = Partition key value
+# Docs: https://docs.microsoft.com/en-us/rest/api/cosmos-db/create-a-document
+#############################################################################
 
-# This will trigger a browser-based login.
-az login
-
-
-resourceGroup="NAME OF RESOURCE GROUP TO USE"
-comsosDbInstanceName="NAME OF COSMOS DB INSTANCE"
+comsosDbInstanceName=$3
+dbName=$4
+containerName=$5
+partitionKeyName=$6
+partitionKeyValue=$7
+# If TRUE provided document can be created or updated automatically.
+# If FALSE and an existing "id" is provided, there will be an error.
+isUpsert=true
+# JSON data to upload is stored in a file.
+# Notes:
+# - The "id" property is always required and must not be empty. If you don't have an ID, set it to a GUID.
+# - When using the REST API, there must also be a property matching the partition key name with a value.
+documentJson=$1
 
 
 baseUrl="https://$comsosDbInstanceName.documents.azure.com/"
-verb="get"
-resourceType="dbs"
-resourceLink="dbs"
-resourceId=""
-
-az configure --defaults group=$resourceGroup
+verb="post"
+resourceType="docs"
+resourceLink="dbs/$dbName/colls/$containerName/docs"
+resourceId="dbs/$dbName/colls/$containerName"
 
 # URIs together with required parameter values can be found at: https://docs.microsoft.com/en-us/rest/api/cosmos-db/cosmosdb-resource-uri-syntax-for-rest
 
 # Get the CosmosDB's master key. We need this to get access.
 # This is the same key that can be found on the portal in the "Keys" section of the CosmosDB instance. The primary key is what the REST API refers to as the "master" key.
-masterKey=$(az cosmosdb keys list --name $comsosDbInstanceName --query primaryMasterKey --output tsv)
+masterKey=$2
 echo "Masterkey: $masterKey"
 
 # CosmosDB REST API requires a hashed authorization header: https://docs.microsoft.com/de-de/rest/api/cosmos-db/access-control-on-cosmosdb-resources#authorization-header
@@ -55,19 +70,8 @@ echo "Auth string: $authString"
 urlEncodedAuthString=$(printf "$authString" | sed 's/=/%3d/g' | sed 's/&/%26/g' | sed 's/+/%2b/g' | sed 's/\//%2f/g')
 echo "URL encoded auth string: $urlEncodedAuthString"
 
-
 # Make the API call by combining base URL and resource link.
 url="$baseUrl$resourceLink"
 echo "URL: $url"
 
-######################## Not working in Cloud Shell because of this issue: https://github.com/Azure/azure-cli/issues/13208 ########################
-    # Set all the required headers and pass the authString in the "Authorization" header.
-    # This is using JSON notation because the blank separated approach does not work, although the docs state it should. (https://docs.microsoft.com/en-us/cli/azure/reference-index?view=azure-cli-latest#az-rest)
-    #headers="{\"x-ms-date\": \"$now\", \"x-ms-version\": \"2018-12-31\", \"x-ms-documentdb-isquery\": \"true\", \"Content-Type\": \"application/query+json\", \"Authorization\": \"$urlEncodedAuthString\"}"
-    #echo "Headers:" $headers
-    #az rest --verbose -m $verb -u $url --headers $headers
-########################
-
-######################## Workaround using cURL ########################
-curl --request $verb -H "x-ms-date: $now" -H "x-ms-version: 2018-12-31" -H "x-ms-documentdb-isquery: true" -H "Content-Type: application/query+json" -H "Authorization: $urlEncodedAuthString" $url
-########################
+curl --request $verb --data "$documentJson" -H "x-ms-documentdb-is-upsert: $isUpsert" -H "x-ms-documentdb-partitionkey: [\"default\"]" -H "x-ms-date: $now" -H "x-ms-version: 2018-12-31" -H "Content-Type: application/json" -H "Authorization: $urlEncodedAuthString" $url
