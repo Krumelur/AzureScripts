@@ -74,4 +74,7 @@ echo "URL encoded auth string: $urlEncodedAuthString"
 url="$baseUrl$resourceLink"
 echo "URL: $url"
 
-curl --request $verb --data "$documentJson" -H "x-ms-documentdb-is-upsert: $isUpsert" -H "x-ms-documentdb-partitionkey: [\"default\"]" -H "x-ms-date: $now" -H "x-ms-version: 2018-12-31" -H "Content-Type: application/json" -H "Authorization: $urlEncodedAuthString" $url
+az rest --verbose -m $verb -b "$documentJson" -u $url --headers x-ms-date="$now" x-ms-documentdb-partitionkey=[\"$partitionKeyValue\"] x-ms-documentdb-is-upsert=$isUpsert x-ms-version=2018-12-31 x-ms-documentdb-isquery=true Content-Type=application/json Authorization=$urlEncodedAuthString
+
+# Alternative: use cURL
+#curl --request $verb --data "$documentJson" -H "x-ms-documentdb-is-upsert: $isUpsert" -H "x-ms-documentdb-partitionkey: [\"$partitionKeyValue\"]" -H "x-ms-date: $now" -H "x-ms-version: 2018-12-31" -H "Content-Type: application/json" -H "Authorization: $urlEncodedAuthString" $url

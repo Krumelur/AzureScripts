@@ -60,14 +60,7 @@ echo "URL encoded auth string: $urlEncodedAuthString"
 url="$baseUrl$resourceLink"
 echo "URL: $url"
 
-######################## Not working in Cloud Shell because of this issue: https://github.com/Azure/azure-cli/issues/13208 ########################
-    # Set all the required headers and pass the authString in the "Authorization" header.
-    # This is using JSON notation because the blank separated approach does not work, although the docs state it should. (https://docs.microsoft.com/en-us/cli/azure/reference-index?view=azure-cli-latest#az-rest)
-    #headers="{\"x-ms-date\": \"$now\", \"x-ms-version\": \"2018-12-31\", \"x-ms-documentdb-isquery\": \"true\", \"Content-Type\": \"application/query+json\", \"Authorization\": \"$urlEncodedAuthString\"}"
-    #echo "Headers:" $headers
-    #az rest --verbose -m $verb -u $url --headers $headers
-########################
+az rest --verbose -m $verb -u $url --headers x-ms-date="$now" x-ms-version=2018-12-31 x-ms-documentdb-isquery=true Content-Type=application/query+json Authorization=$urlEncodedAuthString --debug
 
-######################## Workaround using cURL ########################
-curl --request $verb -H "x-ms-date: $now" -H "x-ms-version: 2018-12-31" -H "x-ms-documentdb-isquery: true" -H "Content-Type: application/query+json" -H "Authorization: $urlEncodedAuthString" $url
-########################
+# Alternative: use cURL
+#curl --request $verb -H "x-ms-date: $now" -H "x-ms-version: 2018-12-31" -H "x-ms-documentdb-isquery: true" -H "Content-Type: application/query+json" -H "Authorization: $urlEncodedAuthString" $url
